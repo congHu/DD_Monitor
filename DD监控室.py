@@ -30,7 +30,7 @@ import dns.resolver
 from ReportException import thraedingExceptionHandler, uncaughtExceptionHandler,\
     unraisableExceptionHandler, loggingSystemInfo
 from danmu import TextOpation, ToolButton
-
+from WebRemote import *
 
 # 程序所在路径
 application_path = ""
@@ -404,6 +404,9 @@ class MainWindow(QMainWindow):
             self.videoWidgetList[i].hideBarKey.connect(self.openControlPanel)
             self.videoWidgetList[i].fullScreenKey.connect(self.fullScreen)
             self.videoWidgetList[i].muteExceptKey.connect(self.muteExcept)
+
+            self.videoWidgetList[i].giveConfigToRemote.connect(self.giveConfigToRemote)
+
             self.videoWidgetList[i].mediaMute(
                 self.config['muted'][i], emit=False)
             self.videoWidgetList[i].slider.setValue(self.config['volume'][i])
@@ -510,6 +513,10 @@ class MainWindow(QMainWindow):
         self.liverPanel.refreshIDList.connect(
             self.refreshPlayerStatus)  # 刷新播放器
         self.liverPanel.startLiveList.connect(self.startLiveTip)  # 开播提醒
+
+        self.liverPanel.giveListToRemote.connect(self.giveListToRemote)  # 更新一些遥控器那边的卡片列表
+        self.liverPanel.giveDeleteToRemote.connect(self.giveDeleteToRemote) # 删除动作更新到遥控器
+
         self.scrollArea.setWidget(self.liverPanel)
         self.scrollArea.multipleTimes.connect(self.changeLiverPanelLayout)
         self.scrollArea.addLiver.connect(self.liverPanel.openLiverRoomPanel)
@@ -577,6 +584,10 @@ class MainWindow(QMainWindow):
         self.optionMenu.addAction(exportConfig)
         importConfig = QAction('导入预设', self, triggered=self.importConfig)
         self.optionMenu.addAction(importConfig)
+
+        hyctest = QAction('hyctest', self, triggered=self.hyctest)
+        self.optionMenu.addAction(hyctest)
+
         progressText.setText('设置选项菜单...')
 
         self.versionMenu = self.menuBar().addMenu('帮助')
@@ -615,6 +626,33 @@ class MainWindow(QMainWindow):
         self.loadDockLayout()
         logging.info('UI构造完毕')
 
+        self.webRemoteDialog = WebRemoteDialog()
+        self.webRemoteServer = WebRemoteServer(self.config)
+        Thread(target=self.webRemoteServer.run, daemon=True).start()
+        # self.webRemoteServer.run()
+
+
+    def hyctest(self):
+        # v =  self.videoWidgetList[1]
+        # v.stopDanmuMessage()
+        # v.roomID = '5050'
+        # v.addMedia.emit([v.id, v.roomID])
+        # v.mediaReload()
+        # v.textBrowser.textBrowser.clear()
+        # v.textBrowser.transBrowser.clear()
+        # v.textBrowser.msgsBrowser.clear()
+        # v.topLabel.show()
+        # v.frame.show()
+        self.webRemoteDialog.hide()
+        self.webRemoteDialog.show()
+
+    def giveListToRemote(self, liverInfo):
+        self.webRemoteServer.liverInfo = liverInfo
+        # self.webRemoteServer.syncInfo(liverInfo)
+    def giveDeleteToRemote(self, roomId):
+        self.webRemoteServer.deleteRoomId(roomId)
+    def giveConfigToRemote(self):
+        self.webRemoteServer.syncConfig(self.config)
     def setPlayer(self):
         for index, layoutConfig in enumerate(self.config['layout']):
             roomID = self.config['player'][index]
@@ -781,6 +819,7 @@ class MainWindow(QMainWindow):
         id, value = volumeInfo
         self.config['volume'][id] = value
         # self.dumpConfig.start()
+        self.giveConfigToRemote()
 
     def globalMediaPlay(self):
         if self.globalPlayToken:

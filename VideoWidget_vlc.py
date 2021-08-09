@@ -234,6 +234,8 @@ class VideoWidget(QFrame):
     muteExceptKey = pyqtSignal()  # 除了这个播放器 其他全部静音快捷键
     closePopWindow = pyqtSignal(list)  # 关闭悬浮窗
 
+    giveConfigToRemote = pyqtSignal() # 更新播放器状态到遥控器
+
     def __init__(self, id, volume, cacheFolder, top=False, title='', resize=[],
                  textSetting=[True, 20, 2, 6, 0, '【 [ {', 10, 0], maxCacheSize=2048000,
                  saveCachePath='', startWithDanmu=True, hardwareDecode=True):
@@ -985,6 +987,7 @@ class VideoWidget(QFrame):
                 self.getMediaURL.checkTimer.start(3000)  # 启动监测定时器
         else:
             self.mediaStop()
+        self.givePlayInfoToRemote.emit()
 
     def mediaStop(self, deleteMedia=True):
         # self.userPause = True

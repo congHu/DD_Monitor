@@ -914,6 +914,8 @@ class LiverPanel(QWidget):
     dumpConfig = pyqtSignal()
     refreshIDList = pyqtSignal(list)
     startLiveList = pyqtSignal(list)
+    giveListToRemote = pyqtSignal(list)
+    giveDeleteToRemote = pyqtSignal(str)
 
     def __init__(self, roomIDDict, app_path):
         super(LiverPanel, self).__init__()
@@ -1023,6 +1025,7 @@ class LiverPanel(QWidget):
         #     self.refreshPanel()
         # elif not self.refreshCount % 3:  # 每20s x 3 = 1分钟强制刷新一次
         #     self.refreshPanel()
+        self.giveListToRemote.emit(liverInfo)
         self.refreshPanel()
 
     def addCoverToPlayer(self, info):
@@ -1033,6 +1036,7 @@ class LiverPanel(QWidget):
         self.collectLiverInfo.setRoomIDList(list(map(int, self.roomIDDict.keys())))  # 更新需要刷新的房间列表
         self.refreshPanel()
         self.dumpConfig.emit()  # 发送保存config信号
+        self.giveDeleteToRemote.emit(roomID)
 
     def deleteAll(self):  # 清空卡片槽
         self.roomIDDict.clear()
