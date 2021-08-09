@@ -3,17 +3,230 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>遥控器</title>
 </head>
 <body>
-  <script src="{{ url_for('static', filename='socket.io.min.js')}}"></script>
-  <script src="{{ url_for('static', filename='jquery.ui.draggable.min.js')}}"></script>
+  <div class="app">
+    <div class="title">
+      
+    </div>
+    <div class="main">
+      <div class="list player-list">
+        <!-- {% for p in config.players %} -->
+        <div class="list-item player">
+          <div class="info">
+            <img class="face" src=""/>
+            <div class="name">adsfasdfasdfasdfasdf</div>
+            <div class="btn">x</div>
+          </div>
+          <div class="controls">
+            <div class="btn">x</div>
+            <input class="slider" type="range" min="0" max="100" step="1" value="100" />
+            <div class="label">100</div>
+          </div>
+        </div>
+        
+      </div>
+      <div class="list">
+        <!-- {% for card in liverInfo %} -->
+        <div class="list-item card">
+          <img class="keyframe" src="{{card[5]}}" />
+          <div class="info">
+            <img class="face" src="{{card[3]}}" />
+            <div class="text">
+              <div class="line">{{card[2]}}</div>
+              <div class="line sub">{{card[6]}}</div>
+            </div>
+          </div>
+        </div>
+        <!-- {% endfor %} -->
+      </div>
+    </div>
+  </div>
+  <script src="static/jquery.min.js"></script>
+  <!-- <script src="{{ url_for('static', filename='jquery.min.js') }}"></script> -->
   <script>
-    const socket = io()
-    socket.on('config', (msg) => {
-      console.log(msg)
+    $('.title').html(window.location.host)
+    var longpressTimer
+    var shadow
+    var isLongPress = false
+    $('.list').on('touchstart touchmove touchend', '.list-item', (e) => {
+      if (e.type == 'touchstart') {
+        $(e.currentTarget).addClass('active')
+        // console.log(e.changedTouches[0].pageX, e.changedTouches[0].pageY)
+        isLongPress = false
+        longpressTimer = setTimeout(() => {
+          $(e.currentTarget).removeClass('active')
+          console.log('longpress')
+          isLongPress = true
+          shadow = $('<img class="shadow"/>')
+          shadow.attr('src', $(e.currentTarget).find('.face').attr('src'))
+          shadow.css('left', e.changedTouches[0].pageX-40)
+          shadow.css('top', e.changedTouches[0].pageY-40)
+          $(document.body).append(shadow)
+          e.preventDefault()
+        }, 500)
+      }else if (e.type == 'touchmove') {
+        $(e.currentTarget).removeClass('active')
+        clearTimeout(longpressTimer)
+        if (isLongPress) {
+          e.preventDefault()
+          
+          const x = e.changedTouches[0].pageX
+          const y = e.changedTouches[0].pageY
+          shadow.css('left', x-40)
+          shadow.css('top', y-40)
+          $('.player').removeClass('active')
+          $('.player').each((i,player)=>{
+            if (x >= $(player).offset().left && x <= $(player).offset().left + $(player).width() && y >= $(player).offset().top && y <= $(player).offset().top + $(player).height()) {
+              $(player).addClass('active')
+              return
+            }
+          })
+        }
+      }else if (e.type == 'touchend') {
+        $(e.currentTarget).removeClass('active')
+        clearTimeout(longpressTimer)
+        if (isLongPress) {
+          e.preventDefault()
+          shadow.remove()
+          const x = e.changedTouches[0].pageX
+          const y = e.changedTouches[0].pageY
+          $('.player').each((i,player)=>{
+            if (x >= $(player).offset().left && x <= $(player).offset().left + $(player).width() && y >= $(player).offset().top && y <= $(player).offset().top + $(player).height()) {
+              console.log(player)
+              $(player).removeClass('active')
+              return
+            }
+          })
+        }
+      }
+    })
+    $('.list').on('input', '.slider', (e) => {
+      $(e.currentTarget).siblings('.label').html($(e.currentTarget).val())
+    })
+    $('.list').on('change', '.slider', (e) => {
+      $(e.currentTarget).siblings('.label').html($(e.currentTarget).val())
+      console.log($(e.currentTarget).val())
     })
   </script>
+  <style>
+    html {
+      height: 100%;
+    }
+    body {
+      background-color: #31363b;
+      margin: 0;
+      color: #fff;
+      height: 100%;
+    }
+    .app {
+      height: 100%;
+      /* display: flex; */
+      /* flex-direction: column; */
+    }
+    .title {
+      border-bottom: 1px #aaa solid;
+      text-align: center;
+      height: 48px;
+      line-height: 48px;
+    }
+    .main {
+      display: flex;
+      /* flex: 1; */
+      height: calc(100% - 48px);
+    }
+    .list {
+      flex: 1;
+      overflow-y: scroll;
+    }
+    .list:not(:first-child) {
+      border-left: 1px #aaa solid;
+    }
+    .list-item {
+      border-bottom: 1px #aaa solid;
+    }
+    .list-item.active {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .player {
+      padding: 8px;
+    }
+    .player .info {
+      display: flex;
+      align-items: center;
+    }
+    .face {
+      width: 30px;
+      height: 30px;
+      border-radius: 15px;
+      background-color: #aaa;
+      overflow: hidden;
+      object-fit: cover;
+    }
+    .player .info .name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-left: 8px;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .player .btn {
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+    }
+    .controls .slider {
+      flex: 1;
+      min-width: 0;
+    }
+    .controls .label {
+      padding: 4px;
+      font-size: 12px;
+    }
+    .card {
+      padding: 16px;
+    }
+    .card .keyframe {
+      height: 100px;
+      width: 100%;
+      background-color: #000;
+      object-fit: cover;
+    }
+    .card .info {
+      display: flex;
+      align-items: center;
+      margin-top: 4px;
+    }
+    .card .info .text {
+      flex: 1;
+      overflow: hidden;
+      margin-left: 4px;
+    }
+    .card .info .text .line {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 14px;
+    }
+    .card .info .text .line.sub {
+      font-size: 12px;
+    }
+    .shadow {
+      width: 80px;
+      height: 80px;
+      border-radius: 40px;
+      line-height: 40px;
+      text-align: center;
+      position: absolute;
+      background-color: rgba(255, 255, 255, 0.6);
+      overflow: hidden;
+    }
+  </style>
 </body>
 </html>
