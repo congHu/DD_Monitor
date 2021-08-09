@@ -628,6 +628,8 @@ class MainWindow(QMainWindow):
 
         self.webRemoteDialog = WebRemoteDialog()
         self.webRemoteServer = WebRemoteServer(self.config)
+        self.webRemoteServer.setRoomId.connect(self.addCoverToPlayer)
+        self.webRemoteServer.setVolume.connect(self.setRoomVolume)
         Thread(target=self.webRemoteServer.run, daemon=True).start()
         # self.webRemoteServer.run()
 
@@ -653,6 +655,10 @@ class MainWindow(QMainWindow):
         self.webRemoteServer.deleteRoomId(roomId)
     def giveConfigToRemote(self):
         self.webRemoteServer.syncConfig(self.config)
+    def setRoomVolume(self, info):
+        index, volume = info
+        self.videoWidgetList[index].setVolume(volume)
+
     def setPlayer(self):
         for index, layoutConfig in enumerate(self.config['layout']):
             roomID = self.config['player'][index]

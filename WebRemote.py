@@ -1,5 +1,5 @@
 from threading import Thread
-from PyQt5.QtCore import QStringListModel, QThread, pyqtSignal
+from PyQt5.QtCore import QObject, QStringListModel, QThread, pyqtSignal
 from PyQt5.QtWidgets import QWidget,QGridLayout,QPushButton,QLabel,QListView
 from PyQt5.QtGui import QImage,QPixmap
 from flask import Flask,jsonify,request,render_template
@@ -15,13 +15,15 @@ import logging
 webRemotePort = 30148
 # wsRemotePort = 30149
 
-class WebRemoteServer:
-    getRoomIds = pyqtSignal(str)
+class WebRemoteServer(QObject):
+    setRoomId = pyqtSignal(list)
+    setVolume = pyqtSignal(list)
 
     liverInfo = []
     # ws = WebsocketServer(wsRemotePort, host='0.0.0.0', loglevel=logging.INFO)
 
     def __init__(self, config):
+        super().__init__()
         self.config = config
     
     def run(self):
@@ -34,7 +36,19 @@ class WebRemoteServer:
     
         @app.route('/')
         def index():
-            return render_template('index.html', config=self.config, liverInfo=self.liverInfo)
+            liveInfo = {}
+            for live in self.liverInfo:
+                liveInfo[live[1]] = live
+            playerInfo = [{
+                'roomid': roomid,
+                'face': liveInfo[roomid][3] if roomid in liveInfo else 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==',
+                'uname': '#%d: %s%s' % (i+1, '(未开播) ' if roomid in liveInfo and liveInfo[roomid][4]==2 else '', liveInfo[roomid][2] if roomid in liveInfo else '空'),
+                'liveStatus': liveInfo[roomid][4] if roomid in liveInfo else 2,
+                'mute': self.config['muted'][i],
+                'volume': self.config['volume'][i],
+            } for i,roomid in enumerate(self.config['player'])]
+            self.liverInfo.sort(key=lambda i:i[4])
+            return render_template('index.html', config=self.config, liverInfo=self.liverInfo, playerInfo=playerInfo)
         # @app.route('/cards')
         # def cards():
         #     # uid, str(roomID), uname, face, liveStatus, keyFrame, title
@@ -43,9 +57,40 @@ class WebRemoteServer:
         # def config():
         #     return jsonify(self.config)
         
-        @app.route('/setroom')
+        @app.route('/setroom', methods=['POST'])
         def setroom():
-            request.form.get('')
+            try:
+                index = request.form.get('index')
+                roomid = request.form.get('roomid')
+                if index is None or roomid is None or roomid == '':
+                    return jsonify({'msg': 'empty params', 'code': 1})
+                index = int(index)
+                if index < 0 or index > 16:
+                    return jsonify({'msg': 'out of range', 'code': 1})
+                self.setRoomId.emit([index, roomid])
+                return jsonify({'msg': 'success', 'code': 0})
+            except Exception as e:
+                return jsonify({'msg': e.args, 'code': 1})
+
+        @app.route('/setvol', methods=['POST'])
+        def setvol():
+            try:
+                index = request.form.get('index')
+                vol = request.form.get('vol')
+                if index is None or vol is None:
+                    return jsonify({'msg': 'empty params', 'code': 1})
+                index = int(index)
+                if index < 0 or index > 16:
+                    return jsonify({'msg': 'out of range', 'code': 1})
+                vol = int(vol)
+                if vol < 0:
+                    vol = 0
+                if vol > 100:
+                    vol = 100
+                self.setVolume.emit([index, vol])
+                return jsonify({'msg': 'success', 'code': 0})
+            except Exception as e:
+                return jsonify({'msg': e.args, 'code': 1})
 
         @self.socketio.event
         def my_event(message):
@@ -61,6 +106,7 @@ class WebRemoteServer:
     def deleteRoomId(self, roomId):
         self.socketio.emit('delete_roomid', roomId)
     def syncConfig(self, config):
+        print('sync-config')
         self.config = config
         self.socketio.emit('config', config)
 

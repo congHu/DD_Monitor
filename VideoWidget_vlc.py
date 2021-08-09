@@ -987,7 +987,7 @@ class VideoWidget(QFrame):
                 self.getMediaURL.checkTimer.start(3000)  # 启动监测定时器
         else:
             self.mediaStop()
-        self.givePlayInfoToRemote.emit()
+        self.giveConfigToRemote.emit()
 
     def mediaStop(self, deleteMedia=True):
         # self.userPause = True

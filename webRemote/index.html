@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="referrer" content="no-referrer" />
   <title>遥控器</title>
 </head>
 <body>
@@ -13,25 +14,28 @@
     </div>
     <div class="main">
       <div class="list player-list">
-        <!-- {% for p in config.players %} -->
+        {% for player in playerInfo %}
         <div class="list-item player">
           <div class="info">
-            <img class="face" src=""/>
-            <div class="name">adsfasdfasdfasdfasdf</div>
+            <img class="face" src="{{player['face']}}" onerror="this.src='data:image/gif;base64,R0lGODlhAQABAIAAAP\/\/\/wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=='"/>
+            <div class="name">{{player['uname']}}</div>
             <div class="btn">x</div>
           </div>
           <div class="controls">
             <div class="btn">x</div>
-            <input class="slider" type="range" min="0" max="100" step="1" value="100" />
-            <div class="label">100</div>
+            <input class="slider" type="range" min="0" max="100" step="1" value="{{player['volume']}}" />
+            <div class="label">{{player['volume']}}</div>
           </div>
         </div>
-        
+        {% endfor %}
       </div>
       <div class="list">
-        <!-- {% for card in liverInfo %} -->
-        <div class="list-item card">
-          <img class="keyframe" src="{{card[5]}}" />
+        {% for card in liverInfo %}
+        <div class="list-item card" data-roomid="{{card[1]}}">
+          <div class="image">
+            <img class="keyframe" src="{{card[5]}}" />
+            <div class="mask {{'show' if card[4]==2 else ''}}">未开播</div>
+          </div>
           <div class="info">
             <img class="face" src="{{card[3]}}" />
             <div class="text">
@@ -40,14 +44,14 @@
             </div>
           </div>
         </div>
-        <!-- {% endfor %} -->
+        {% endfor %}
       </div>
     </div>
   </div>
   <script src="static/jquery.min.js"></script>
   <!-- <script src="{{ url_for('static', filename='jquery.min.js') }}"></script> -->
   <script>
-    $('.title').html(window.location.host)
+    $('.title').html(window.location.hostname)
     var longpressTimer
     var shadow
     var isLongPress = false
@@ -60,7 +64,7 @@
           $(e.currentTarget).removeClass('active')
           console.log('longpress')
           isLongPress = true
-          shadow = $('<img class="shadow"/>')
+          shadow = $('<img class="shadow" data-roomid="'+$(e.currentTarget).attr('data-roomid')+'"/>')
           shadow.attr('src', $(e.currentTarget).find('.face').attr('src'))
           shadow.css('left', e.changedTouches[0].pageX-40)
           shadow.css('top', e.changedTouches[0].pageY-40)
@@ -97,6 +101,14 @@
             if (x >= $(player).offset().left && x <= $(player).offset().left + $(player).width() && y >= $(player).offset().top && y <= $(player).offset().top + $(player).height()) {
               console.log(player)
               $(player).removeClass('active')
+              const index = $(player).index()
+              const roomid = shadow.attr('data-roomid')
+              console.log(index, roomid)
+              $.post('/setroom', {
+                index, roomid
+              }, (res => {
+                console.log(res)
+              }))
               return
             }
           })
@@ -120,6 +132,14 @@
       margin: 0;
       color: #fff;
       height: 100%;
+    }
+    img {
+      pointer-events: none;
+    }
+    *:not(input):not(textarea) {
+      user-select: none;
+      -webkit-user-select: none; /* disable selection/Copy of UIWebView */
+      -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
     }
     .app {
       height: 100%;
@@ -193,11 +213,30 @@
     .card {
       padding: 16px;
     }
-    .card .keyframe {
+    .card .image {
+      height: 100px;
+      width: 100%;
+      background-color: #000;
+    }
+    .card .image .keyframe {
       height: 100px;
       width: 100%;
       background-color: #000;
       object-fit: cover;
+    }
+    .card .image .mask {
+      position: relative;
+      width: 100%;
+      height: 100px;
+      top: -104px;
+      background-color: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      text-align: center;
+      line-height: 100px;
+      display: none;
+    }
+    .card .image .mask.show {
+      display: block;
     }
     .card .info {
       display: flex;
@@ -212,6 +251,7 @@
     .card .info .text .line {
       overflow: hidden;
       text-overflow: ellipsis;
+      white-space: nowrap;
       font-size: 14px;
     }
     .card .info .text .line.sub {
@@ -224,7 +264,8 @@
       line-height: 40px;
       text-align: center;
       position: absolute;
-      background-color: rgba(255, 255, 255, 0.6);
+      background-color: #fff;
+      opacity: 0.7;
       overflow: hidden;
     }
   </style>
