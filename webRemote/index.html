@@ -160,6 +160,39 @@
         }
       })
     })
+
+    var liverInfo = {{json.dumps(liverInfo)}}
+    console.log('liverInfo', liverInfo)
+    var socket = io()
+    io.on('config', (config) => {
+      console.log('config', config)
+      $('.player').each((i,e) => {
+        const roomid = config['player'][i]
+
+        $(e).attr('data-roomid', roomid)
+        $(e).find('.slider').val(config['volume'][i])
+
+        // const mute = config['mute'][i]
+        const info = liverInfo.find(i => i[1]==roomid)
+        if (info) {
+          $(e).find('.face').attr('src', info[3])
+          let liveStatus = ''
+          if (info[4]==2) liveStatus = '(未开播) '
+          $(e).find('.name').html(`#${i+1}: ${liveStatus}${info[2]}`)
+        }else{
+          $(e).find('.face').attr('src', '')
+          $(e).find('.name').html(`#${i+1}: 空`)
+        }
+
+      })
+    })
+    io.on('liver', (data) => {
+      console.log('liver', data)
+    })
+    io.on('delete_roomid', (data) => {
+      console.log('delete_roomid', data)
+      $(`.card[date-roomid=${data}]`).remove()
+    })
   </script>
   <style>
     html {

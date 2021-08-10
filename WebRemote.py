@@ -142,6 +142,7 @@ class WebRemoteServer(QObject):
 
     def syncInfo(self, liverInfo):
         self.liverInfo = liverInfo
+        self.socketio.emit('liver', liverInfo)
     def deleteRoomId(self, roomId):
         self.socketio.emit('delete_roomid', roomId)
     def syncConfig(self, config):
