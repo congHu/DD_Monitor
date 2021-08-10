@@ -18,6 +18,8 @@ webRemotePort = 30148
 class WebRemoteServer(QObject):
     setRoomId = pyqtSignal(list)
     setVolume = pyqtSignal(list)
+    setMute = pyqtSignal(list)
+    setExchange = pyqtSignal(list)
 
     liverInfo = []
     # ws = WebsocketServer(wsRemotePort, host='0.0.0.0', loglevel=logging.INFO)
@@ -88,6 +90,43 @@ class WebRemoteServer(QObject):
                 if vol > 100:
                     vol = 100
                 self.setVolume.emit([index, vol])
+                return jsonify({'msg': 'success', 'code': 0})
+            except Exception as e:
+                return jsonify({'msg': e.args, 'code': 1})
+
+        @app.route('/setmute', methods=['POST'])
+        def setmute():
+            try:
+                index = request.form.get('index')
+                mute = request.form.get('mute')
+                if index is None or vol is None:
+                    return jsonify({'msg': 'empty params', 'code': 1})
+                index = int(index)
+                if index < 0 or index > 16:
+                    return jsonify({'msg': 'out of range', 'code': 1})
+                mute = int(mute)
+                if mute not in [1,2]:
+                    return jsonify({'msg': 'out of range', 'code': 1})
+                self.setMute.emit([index, mute])
+                return jsonify({'msg': 'success', 'code': 0})
+            except Exception as e:
+                return jsonify({'msg': e.args, 'code': 1})
+
+        @app.route('/exchange', methods=['POST'])
+        def exchange():
+            try:
+                fromId = request.form.get('fromId')
+                fromRoomId = request.form.get('fromRoomId')
+                toId = request.form.get('toId')
+                toRoomId = request.form.get('toRoomId')
+                if fromId is None or fromRoomId is None or toId is None or toRoomId is None:
+                    return jsonify({'msg': 'empty params', 'code': 1})
+                fromId = int(fromId)
+                if fromId < 0 or fromId > 16:
+                    return jsonify({'msg': 'out of range', 'code': 1})
+                if toId < 0 or toId > 16:
+                    return jsonify({'msg': 'out of range', 'code': 1})
+                self.setExchange.emit([fromId, fromRoomId, toId, toRoomId])
                 return jsonify({'msg': 'success', 'code': 0})
             except Exception as e:
                 return jsonify({'msg': e.args, 'code': 1})

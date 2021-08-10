@@ -15,7 +15,7 @@
     <div class="main">
       <div class="list player-list">
         {% for player in playerInfo %}
-        <div class="list-item player">
+        <div class="list-item player" data-roomid="{{player['roomid']}}">
           <div class="info">
             <img class="face" src="{{player['face']}}" onerror="this.src='data:image/gif;base64,R0lGODlhAQABAIAAAP\/\/\/wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=='"/>
             <div class="name">{{player['uname']}}</div>
@@ -50,6 +50,8 @@
   </div>
   <script src="static/jquery.min.js"></script>
   <!-- <script src="{{ url_for('static', filename='jquery.min.js') }}"></script> -->
+  <script src="static/socket.io.min.js"></script>
+  <!-- <script src="{{ url_for('static', filename='socket.io.min.js') }}"></script> -->
   <script>
     $('.title').html(window.location.hostname)
     var longpressTimer
@@ -64,7 +66,9 @@
           $(e.currentTarget).removeClass('active')
           console.log('longpress')
           isLongPress = true
-          shadow = $('<img class="shadow" data-roomid="'+$(e.currentTarget).attr('data-roomid')+'"/>')
+          shadow = $('<img class="shadow"/>')
+          shadow.attr('data-roomid') = $(e.currentTarget).attr('data-roomid')
+          shadow.attr('data-playerid') = $(e.currentTarget).index()
           shadow.attr('src', $(e.currentTarget).find('.face').attr('src'))
           shadow.css('left', e.changedTouches[0].pageX-40)
           shadow.css('top', e.changedTouches[0].pageY-40)
@@ -103,12 +107,34 @@
               $(player).removeClass('active')
               const index = $(player).index()
               const roomid = shadow.attr('data-roomid')
-              console.log(index, roomid)
-              $.post('/setroom', {
-                index, roomid
-              }, (res => {
-                console.log(res)
-              }))
+              const playerRoomid = $(player).attr('date-roomid')
+              if (roomid != playerRoomid) {
+                const fromId = shadow.attr('data-playerid')
+                if (fromId!==undefined) {
+                  $.post('/exchange', {
+                    fromId,
+                    toId: index,
+                    fromRoomId: playerRoomid,
+                    toRoomId: roomid
+                  }, res => {
+                    console.log(res)
+                    if (res.code == 0) {
+                      $(player).find('.name').addClass('pending')
+                      $('.player').eq(fromId).find('.name').addClass('pending')
+                    }
+                  })
+                }else{
+                  console.log(index, roomid)
+                  $.post('/setroom', {
+                    index, roomid
+                  }, res => {
+                    console.log(res)
+                    if (res.code == 0) {
+                      $(player).find('.name').addClass('pending')
+                    }
+                  })
+                }
+              }
               return
             }
           })
@@ -119,8 +145,20 @@
       $(e.currentTarget).siblings('.label').html($(e.currentTarget).val())
     })
     $('.list').on('change', '.slider', (e) => {
-      $(e.currentTarget).siblings('.label').html($(e.currentTarget).val())
-      console.log($(e.currentTarget).val())
+      const vol = $(e.currentTarget).val()
+      const index = $(e.currentTarget).parents('.player').index()
+
+      const label = $(e.currentTarget).siblings('.label')
+      label.html(vol)
+      console.log(index, $(e.currentTarget).val())
+      $.post('/setvol', {
+        index, vol
+      }, res => {
+        console.log(res)
+        if (res.code == 0) {
+          label.addClass('pending')
+        }
+      })
     })
   </script>
   <style>
@@ -267,6 +305,9 @@
       background-color: #fff;
       opacity: 0.7;
       overflow: hidden;
+    }
+    .pending {
+      color: #aaa;
     }
   </style>
 </body>

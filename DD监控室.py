@@ -630,6 +630,8 @@ class MainWindow(QMainWindow):
         self.webRemoteServer = WebRemoteServer(self.config)
         self.webRemoteServer.setRoomId.connect(self.addCoverToPlayer)
         self.webRemoteServer.setVolume.connect(self.setRoomVolume)
+        self.webRemoteServer.setMute.connect(self.setRoomMute)
+        self.webRemoteServer.setExchange.connect(self.exchangeMedia)
         Thread(target=self.webRemoteServer.run, daemon=True).start()
         # self.webRemoteServer.run()
 
@@ -658,6 +660,9 @@ class MainWindow(QMainWindow):
     def setRoomVolume(self, info):
         index, volume = info
         self.videoWidgetList[index].setVolume(volume)
+    def setRoomMute(self, info):
+        index, mute = info
+        self.videoWidgetList[index].mediaMute(mute)
 
     def setPlayer(self):
         for index, layoutConfig in enumerate(self.config['layout']):
