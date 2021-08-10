@@ -12,3 +12,4 @@ pyinstaller==4.2
 Flask==2.0.1
 Flask_SocketIO==5.1.1
 qrcode==7.2
+pillow==8.3.1
