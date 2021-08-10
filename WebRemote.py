@@ -23,6 +23,7 @@ class WebRemoteServer(QObject):
 
     liverInfo = []
     # ws = WebsocketServer(wsRemotePort, host='0.0.0.0', loglevel=logging.INFO)
+    deletedRoomIds = []
 
     def __init__(self, config):
         super().__init__()
@@ -49,8 +50,9 @@ class WebRemoteServer(QObject):
                 'mute': self.config['muted'][i],
                 'volume': self.config['volume'][i],
             } for i,roomid in enumerate(self.config['player'])]
-            self.liverInfo.sort(key=lambda i:i[4])
-            return render_template('index.html', config=self.config, liverInfo=self.liverInfo, playerInfo=playerInfo)
+            cardInfo = list(filter(lambda i:i[1] not in self.deletedRoomIds, self.liverInfo))
+            cardInfo.sort(key=lambda i:i[4])
+            return render_template('index.html', config=self.config, liverInfo=self.liverInfo, playerInfo=playerInfo, cardInfo=cardInfo)
         # @app.route('/cards')
         # def cards():
         #     # uid, str(roomID), uname, face, liveStatus, keyFrame, title
@@ -99,7 +101,7 @@ class WebRemoteServer(QObject):
             try:
                 index = request.form.get('index')
                 mute = request.form.get('mute')
-                if index is None or vol is None:
+                if index is None or mute is None:
                     return jsonify({'msg': 'empty params', 'code': 1})
                 index = int(index)
                 if index < 0 or index > 16:
@@ -124,9 +126,13 @@ class WebRemoteServer(QObject):
                 fromId = int(fromId)
                 if fromId < 0 or fromId > 16:
                     return jsonify({'msg': 'out of range', 'code': 1})
+                toId = int(toId)
                 if toId < 0 or toId > 16:
                     return jsonify({'msg': 'out of range', 'code': 1})
                 self.setExchange.emit([fromId, fromRoomId, toId, toRoomId])
+                # self.config['player'][toId] = fromRoomId  # 记录config
+                # self.config['player'][fromId] = toRoomId
+                # self.socketio.emit('config', self.config)
                 return jsonify({'msg': 'success', 'code': 0})
             except Exception as e:
                 return jsonify({'msg': e.args, 'code': 1})
@@ -144,6 +150,7 @@ class WebRemoteServer(QObject):
         self.liverInfo = liverInfo
         self.socketio.emit('liver', liverInfo)
     def deleteRoomId(self, roomId):
+        self.deletedRoomIds.append(roomId)
         self.socketio.emit('delete_roomid', roomId)
     def syncConfig(self, config):
         print('sync-config')

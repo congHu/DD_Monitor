@@ -585,8 +585,8 @@ class MainWindow(QMainWindow):
         importConfig = QAction('导入预设', self, triggered=self.importConfig)
         self.optionMenu.addAction(importConfig)
 
-        hyctest = QAction('hyctest', self, triggered=self.hyctest)
-        self.optionMenu.addAction(hyctest)
+        webRemoteMenu = QAction('遥控器', self, triggered=self.showWebRemoteDialog)
+        self.optionMenu.addAction(webRemoteMenu)
 
         progressText.setText('设置选项菜单...')
 
@@ -636,23 +636,13 @@ class MainWindow(QMainWindow):
         # self.webRemoteServer.run()
 
 
-    def hyctest(self):
-        # v =  self.videoWidgetList[1]
-        # v.stopDanmuMessage()
-        # v.roomID = '5050'
-        # v.addMedia.emit([v.id, v.roomID])
-        # v.mediaReload()
-        # v.textBrowser.textBrowser.clear()
-        # v.textBrowser.transBrowser.clear()
-        # v.textBrowser.msgsBrowser.clear()
-        # v.topLabel.show()
-        # v.frame.show()
+    def showWebRemoteDialog(self):
         self.webRemoteDialog.hide()
         self.webRemoteDialog.show()
 
     def giveListToRemote(self, liverInfo):
         self.webRemoteServer.liverInfo = liverInfo
-        # self.webRemoteServer.syncInfo(liverInfo)
+        self.webRemoteServer.syncInfo(liverInfo)
     def giveDeleteToRemote(self, roomId):
         self.webRemoteServer.deleteRoomId(roomId)
     def giveConfigToRemote(self):
@@ -660,9 +650,13 @@ class MainWindow(QMainWindow):
     def setRoomVolume(self, info):
         index, volume = info
         self.videoWidgetList[index].setVolume(volume)
+        self.videoWidgetList[index].topLabel.show()
+        self.videoWidgetList[index].frame.show()
     def setRoomMute(self, info):
         index, mute = info
         self.videoWidgetList[index].mediaMute(mute)
+        self.videoWidgetList[index].topLabel.show()
+        self.videoWidgetList[index].frame.show()
 
     def setPlayer(self):
         for index, layoutConfig in enumerate(self.config['layout']):
@@ -698,6 +692,8 @@ class MainWindow(QMainWindow):
         self.config['player'][id] = 0
         self.liverPanel.updatePlayingStatus(self.config['player'])
         self.dumpConfig.start()
+        print('deletemedia', id)
+        self.webRemoteServer.syncConfig(self.config)
 
     def exchangeMedia(self, info):  # 交换播放窗口的函数
         fromID, fromRoomID, toID, toRoomID = info  # 交换数据
@@ -775,6 +771,12 @@ class MainWindow(QMainWindow):
         # toVideoPos = toVideo.mapToGlobal(toVideo.pos())
         # fromVideo.textBrowser.move(toVideoPos + QPoint(toWidth * fromVideo.deltaX, toHeight * fromVideo.deltaY))
         # toVideo.textBrowser.move(fromVideoPos + QPoint(fromWidth * toVideo.deltaX, fromHeight * toVideo.deltaY))
+
+        self.videoWidgetList[fromID].topLabel.show()
+        self.videoWidgetList[fromID].frame.show()
+        self.videoWidgetList[toID].topLabel.show()
+        self.videoWidgetList[toID].frame.show()
+        self.webRemoteServer.syncConfig(self.config)
 
     def clearLiverPanel(self):  # 清空卡片槽
         reply = QMessageBox.information(
@@ -1298,6 +1300,8 @@ class MainWindow(QMainWindow):
         self.addMedia(info)
         self.videoWidgetList[info[0]].roomID = info[1]  # 修改房号
         self.videoWidgetList[info[0]].mediaReload()  # 重载视频
+        self.videoWidgetList[info[0]].topLabel.show()
+        self.videoWidgetList[info[0]].frame.show()
 
     def refreshPlayerStatus(self, refreshIDList):  # 刷新直播状态发生变化的播放器
         for videoWidget in self.videoWidgetList:

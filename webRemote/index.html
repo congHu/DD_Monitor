@@ -19,18 +19,18 @@
           <div class="info">
             <img class="face" src="{{player['face']}}" onerror="this.src='data:image/gif;base64,R0lGODlhAQABAIAAAP\/\/\/wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=='"/>
             <div class="name">{{player['uname']}}</div>
-            <div class="btn">x</div>
+            <div class="btn close-btn">x</div>
           </div>
           <div class="controls">
-            <div class="btn">x</div>
+            <div class="btn mute-btn iconfont" data-mute="{{player['mute']}}">{{('&#xe606;' if player['mute'] == 1 else '&#xe607;')|safe}}</div>
             <input class="slider" type="range" min="0" max="100" step="1" value="{{player['volume']}}" />
             <div class="label">{{player['volume']}}</div>
           </div>
         </div>
         {% endfor %}
       </div>
-      <div class="list">
-        {% for card in liverInfo %}
+      <div class="list card-list">
+        {% for card in cardInfo %}
         <div class="list-item card" data-roomid="{{card[1]}}">
           <div class="image">
             <img class="keyframe" src="{{card[5]}}" />
@@ -53,6 +53,19 @@
   <script src="static/socket.io.min.js"></script>
   <!-- <script src="{{ url_for('static', filename='socket.io.min.js') }}"></script> -->
   <script>
+    // 用模板组成js代码（是下下策，千万不要学）
+    var liverInfo = {
+      {% for liver in liverInfo %}
+        "{{liver[1]}}": {
+          face: "{{liver[3]}}",
+          name: "{{liver[2]}}",
+          liveStatus: {{liver[4]}}
+        },
+      {% endfor %}
+    }
+    console.log('liverInfo', liverInfo)
+  </script>
+  <script>
     $('.title').html(window.location.hostname)
     var longpressTimer
     var shadow
@@ -67,8 +80,10 @@
           console.log('longpress')
           isLongPress = true
           shadow = $('<img class="shadow"/>')
-          shadow.attr('data-roomid') = $(e.currentTarget).attr('data-roomid')
-          shadow.attr('data-playerid') = $(e.currentTarget).index()
+          shadow.attr('data-roomid', $(e.currentTarget).attr('data-roomid'))
+          if ($(e.currentTarget).hasClass('player')) {
+            shadow.attr('data-playerid', $(e.currentTarget).index())
+          }
           shadow.attr('src', $(e.currentTarget).find('.face').attr('src'))
           shadow.css('left', e.changedTouches[0].pageX-40)
           shadow.css('top', e.changedTouches[0].pageY-40)
@@ -107,20 +122,24 @@
               $(player).removeClass('active')
               const index = $(player).index()
               const roomid = shadow.attr('data-roomid')
-              const playerRoomid = $(player).attr('date-roomid')
+              const playerRoomid = $(player).attr('data-roomid')
+              console.log(roomid, playerRoomid)
               if (roomid != playerRoomid) {
                 const fromId = shadow.attr('data-playerid')
+                console.log(fromId)
                 if (fromId!==undefined) {
                   $.post('/exchange', {
                     fromId,
                     toId: index,
-                    fromRoomId: playerRoomid,
-                    toRoomId: roomid
+                    fromRoomId: roomid,
+                    toRoomId: playerRoomid
                   }, res => {
                     console.log(res)
                     if (res.code == 0) {
+                      $(player).find('.face').attr('src', '')
                       $(player).find('.name').addClass('pending')
                       $('.player').eq(fromId).find('.name').addClass('pending')
+                      $('.player').eq(fromId).find('.face').attr('src', '')
                     }
                   })
                 }else{
@@ -131,6 +150,7 @@
                     console.log(res)
                     if (res.code == 0) {
                       $(player).find('.name').addClass('pending')
+                      $(player).find('.face').attr('src', '')
                     }
                   })
                 }
@@ -160,38 +180,97 @@
         }
       })
     })
+    $('.player-list').on('click', '.mute-btn', (e) => {
+      let mute = 1
+      if ($(e.currentTarget).attr('data-mute') == 1) {
+        mute = 2
+      }else{
+        mute = 1
+      }
+      const index = $(e.currentTarget).parents('.player').index()
+      $.post('/setmute', {
+        index, mute
+      }, res => {
+        console.log(res)
+        $(e.currentTarget).attr('data-mute', mute)
+        $(e.currentTarget).html(mute == 1 ? '&#xe606;' : '&#xe607;')
+        $(e.currentTarget).addClass('pending')
+      })
+    })
+    $('.player-list').on('click', '.close-btn', (e) => {
+      const index = $(e.currentTarget).parents('.player').index()
+      $.post('/setroom', {
+        index,
+        roomid: '0'
+      }, res => {
+        console.log(res)
+        $(e.currentTarget).addClass('pending')
+      })
+    })
 
-    var liverInfo = {{json.dumps(liverInfo)}}
-    console.log('liverInfo', liverInfo)
     var socket = io()
-    io.on('config', (config) => {
+    socket.on('config', (config) => {
       console.log('config', config)
       $('.player').each((i,e) => {
         const roomid = config['player'][i]
 
         $(e).attr('data-roomid', roomid)
         $(e).find('.slider').val(config['volume'][i])
+        $(e).find('.slider').removeClass('pending')
+        $(e).find('.label').html(config['volume'][i])
+        $(e).find('.label').removeClass('pending')
+        $(e).find('.mute-btn').attr('data-mute', config['muted'][i])
+        $(e).find('.mute-btn').html(config['muted'][i] == 1 ? '&#xe606;' : '&#xe607;')
+        $(e).find('.mute-btn').removeClass('pending')
 
         // const mute = config['mute'][i]
-        const info = liverInfo.find(i => i[1]==roomid)
-        if (info) {
-          $(e).find('.face').attr('src', info[3])
+        // const info = liverInfo.find(i => i[1]==roomid)
+        if (liverInfo.hasOwnProperty(roomid)) {
+          $(e).find('.face').attr('src', liverInfo[roomid].face)
           let liveStatus = ''
-          if (info[4]==2) liveStatus = '(未开播) '
-          $(e).find('.name').html(`#${i+1}: ${liveStatus}${info[2]}`)
+          if (liverInfo[roomid].liveStatus==2) liveStatus = '(未开播) '
+          $(e).find('.name').html(`#${i+1}: ${liveStatus}${liverInfo[roomid].name}`)
+          $(e).find('.name').removeClass('pending')
         }else{
           $(e).find('.face').attr('src', '')
           $(e).find('.name').html(`#${i+1}: 空`)
+          $(e).find('.name').removeClass('pending')
         }
 
       })
     })
-    io.on('liver', (data) => {
+    socket.on('liver', (data) => {
       console.log('liver', data)
+      for (const i in data) {
+        if (!liverInfo.hasOwnProperty(data[i][1])) {
+          liverInfo[data[i][1]] = data[i]
+        }
+        if ($(`.card[data-roomid=${data[i][1]}]`).length == 0) {
+          const card =$('<div class="list-item card" data-roomid="'+data[i][1]+'">'+
+              '<div class="image">'+
+                '<img class="keyframe" src="'+data[i][5]+'" />'+
+                '<div class="mask'+(data[i][4]==2?' show':'')+'">未开播</div>'+
+              '</div>'+
+              '<div class="info">'+
+                '<img class="face" src="'+data[i][3]+'" />'+
+                '<div class="text">'+
+                  '<div class="line">'+data[i][2]+'</div>'+
+                  '<div class="line sub">'+data[i][6]+'</div>'+
+                '</div>'+
+              '</div>'+
+            '</div>')
+          if (data[i][4]==1) {
+            $('.card-list').prepend(card)
+          }else{
+            $('.card-list').append(card)
+          }
+        }
+      }
     })
-    io.on('delete_roomid', (data) => {
+    socket.on('delete_roomid', (data) => {
       console.log('delete_roomid', data)
-      $(`.card[date-roomid=${data}]`).remove()
+      // console.log($('.card[data-roomid='+data+']'))
+      $(`.card[data-roomid=${data}]`).remove()
     })
   </script>
   <style>
@@ -211,6 +290,19 @@
       user-select: none;
       -webkit-user-select: none; /* disable selection/Copy of UIWebView */
       -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
+    }
+    @font-face {
+      font-family: 'iconfont';
+      src: url('static/iconfont/iconfont.woff2?t=1628598590166') format('woff2'),
+          url('static/iconfont/iconfont.woff?t=1628598590166') format('woff'),
+          url('static/iconfont/iconfont.ttf?t=1628598590166') format('truetype');
+    }
+    .iconfont {
+      font-family: "iconfont" !important;
+      font-size: 16px;
+      font-style: normal;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     .app {
       height: 100%;

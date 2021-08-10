@@ -409,7 +409,7 @@ class VideoWidget(QFrame):
         # 关闭窗口
         self.stop = PushButton(self.style().standardIcon(
             QStyle.SP_DialogCancelButton))
-        self.stop.clicked.connect(self.mediaStop)
+        self.stop.clicked.connect(self.closeMedia)
         frameLayout.addWidget(self.stop)
 
         # ---- IO 交互设置 ----
@@ -972,6 +972,7 @@ class VideoWidget(QFrame):
 
         voice_str = "音量Off" if self.player.audio_get_mute() else "音量On"
         logging.debug(f"  final mute status={voice_str}")
+        self.giveConfigToRemote.emit()
 
     def mediaReload(self):
         self.getMediaURL.recordToken = False  # 设置停止缓存标志位
@@ -989,7 +990,10 @@ class VideoWidget(QFrame):
             self.mediaStop()
         self.giveConfigToRemote.emit()
 
+    def closeMedia(self):
+        self.mediaStop(True)
     def mediaStop(self, deleteMedia=True):
+        print('mediastop', deleteMedia)
         # self.userPause = True
         self.oldTitle, self.oldUname = '', ''
         self.roomID = '0'
