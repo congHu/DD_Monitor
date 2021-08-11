@@ -34,7 +34,7 @@
         <div class="list-item card" data-roomid="{{card[1]}}">
           <div class="image">
             <img class="keyframe" src="{{card[5]}}" />
-            <div class="mask {{'show' if card[4]==2 else ''}}">未开播</div>
+            <div class="mask {{'show' if card[4]!=1 else ''}}">未开播</div>
           </div>
           <div class="info">
             <img class="face" src="{{card[3]}}" />
@@ -249,7 +249,7 @@
           const card =$('<div class="list-item card" data-roomid="'+data[i][1]+'">'+
               '<div class="image">'+
                 '<img class="keyframe" src="'+data[i][5]+'" />'+
-                '<div class="mask'+(data[i][4]==2?' show':'')+'">未开播</div>'+
+                '<div class="mask'+(data[i][4]!=1?' show':'')+'">未开播</div>'+
               '</div>'+
               '<div class="info">'+
                 '<img class="face" src="'+data[i][3]+'" />'+

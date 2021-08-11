@@ -11,7 +11,8 @@ import io
 import os
 import json
 import logging
-from engineio.async_drivers import gevent
+import functools
+from engineio.async_drivers import gevent # pyinstaller打包需要这个才能运行正常
 
 webRemotePort = 30148
 # wsRemotePort = 30149
@@ -46,13 +47,13 @@ class WebRemoteServer(QThread):
             playerInfo = [{
                 'roomid': roomid,
                 'face': liveInfo[roomid][3] if roomid in liveInfo else 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==',
-                'uname': '#%d: %s%s' % (i+1, '(未开播) ' if roomid in liveInfo and liveInfo[roomid][4]==2 else '', liveInfo[roomid][2] if roomid in liveInfo else '空'),
-                'liveStatus': liveInfo[roomid][4] if roomid in liveInfo else 2,
+                'uname': '#%d: %s%s' % (i+1, '(未开播) ' if roomid in liveInfo and liveInfo[roomid][4]!=1 else '', liveInfo[roomid][2] if roomid in liveInfo else '空'),
+                'liveStatus': liveInfo[roomid][4] if roomid in liveInfo else 0,
                 'mute': self.config['muted'][i],
                 'volume': self.config['volume'][i],
             } for i,roomid in enumerate(self.config['player'])]
             cardInfo = list(filter(lambda i:i[1] not in self.deletedRoomIds, self.liverInfo))
-            cardInfo.sort(key=lambda i:i[4])
+            cardInfo.sort(key=functools.cmp_to_key(lambda x,y:abs(x[1]-1) - abs(y[1]-1)))
             return render_template('index.html', config=self.config, liverInfo=self.liverInfo, playerInfo=playerInfo, cardInfo=cardInfo)
         # @app.route('/cards')
         # def cards():
