@@ -11,6 +11,7 @@ import io
 import os
 import json
 import logging
+from engineio.async_drivers import gevent
 
 webRemotePort = 30148
 # wsRemotePort = 30149
@@ -35,7 +36,7 @@ class WebRemoteServer(QThread):
         app = Flask('DDWebRemote', template_folder=os.path.abspath('webRemote'), static_folder=os.path.abspath('webRemote/static'))
         app.config['JSON_AS_ASCII'] = False
         app.config['JSONIFY_MIMETYPE'] = "application/json;charset=utf-8"
-        self.socketio = SocketIO(app)
+        self.socketio = SocketIO(app, async_mode='gevent')
     
         @app.route('/')
         def index():
