@@ -365,6 +365,7 @@ class MainWindow(QMainWindow):
         self.webRemoteServer.setVolume.connect(self.setRoomVolume)
         self.webRemoteServer.setMute.connect(self.setRoomMute)
         self.webRemoteServer.setExchange.connect(self.exchangeMedia)
+        self.webRemoteServer.webIndexRequest.connect(self.closeRemoteQrDialog)
 
         # Thread(target=self.webRemoteServer.run, daemon=True).start()
         self.webRemoteServer.start()
@@ -663,6 +664,8 @@ class MainWindow(QMainWindow):
         self.videoWidgetList[index].mediaMute(mute)
         self.videoWidgetList[index].topLabel.show()
         self.videoWidgetList[index].frame.show()
+    def closeRemoteQrDialog(self):
+        self.webRemoteDialog.close()
 
     def setPlayer(self):
         for index, layoutConfig in enumerate(self.config['layout']):

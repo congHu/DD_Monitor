@@ -12,7 +12,7 @@ import os
 import json
 import logging
 import functools
-from engineio.async_drivers import gevent # pyinstaller打包需要这个才能运行正常
+from engineio.async_drivers import gevent # windows: pyinstaller打包需要这个才能运行正常
 
 webRemotePort = 30148
 # wsRemotePort = 30149
@@ -22,6 +22,8 @@ class WebRemoteServer(QThread):
     setVolume = pyqtSignal(list)
     setMute = pyqtSignal(list)
     setExchange = pyqtSignal(list)
+
+    webIndexRequest = pyqtSignal()
 
     liverInfo = []
     # ws = WebsocketServer(wsRemotePort, host='0.0.0.0', loglevel=logging.INFO)
@@ -33,7 +35,6 @@ class WebRemoteServer(QThread):
         self.config = config
     def run(self):
         # Thread(target=self.startWs, daemon=True).start()
-
         app = Flask('DDWebRemote', template_folder=os.path.abspath('webRemote'), static_folder=os.path.abspath('webRemote/static'))
         app.config['JSON_AS_ASCII'] = False
         app.config['JSONIFY_MIMETYPE'] = "application/json;charset=utf-8"
@@ -41,6 +42,8 @@ class WebRemoteServer(QThread):
     
         @app.route('/')
         def index():
+            self.webIndexRequest.emit()
+            
             liveInfo = {}
             for live in self.liverInfo:
                 liveInfo[live[1]] = live
