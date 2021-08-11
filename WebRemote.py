@@ -15,7 +15,7 @@ import logging
 webRemotePort = 30148
 # wsRemotePort = 30149
 
-class WebRemoteServer(QObject):
+class WebRemoteServer(QThread):
     setRoomId = pyqtSignal(list)
     setVolume = pyqtSignal(list)
     setMute = pyqtSignal(list)
@@ -24,11 +24,11 @@ class WebRemoteServer(QObject):
     liverInfo = []
     # ws = WebsocketServer(wsRemotePort, host='0.0.0.0', loglevel=logging.INFO)
     deletedRoomIds = []
+    socketio = None
 
     def __init__(self, config):
         super().__init__()
         self.config = config
-    
     def run(self):
         # Thread(target=self.startWs, daemon=True).start()
 
@@ -148,14 +148,17 @@ class WebRemoteServer(QObject):
 
     def syncInfo(self, liverInfo):
         self.liverInfo = liverInfo
-        self.socketio.emit('liver', liverInfo)
+        if self.socketio is not None:
+            self.socketio.emit('liver', liverInfo)
     def deleteRoomId(self, roomId):
         self.deletedRoomIds.append(roomId)
-        self.socketio.emit('delete_roomid', roomId)
+        if self.socketio is not None:
+            self.socketio.emit('delete_roomid', roomId)
     def syncConfig(self, config):
         print('sync-config')
         self.config = config
-        self.socketio.emit('config', config)
+        if self.socketio is not None:
+            self.socketio.emit('config', config)
 
 
 

@@ -252,6 +252,9 @@ class MainWindow(QMainWindow):
 
     def __init__(self, cacheFolder, progressBar, progressText):
         super(MainWindow, self).__init__()
+
+        
+
         self.setWindowTitle('DD监控室')
         self.resize(1600, 900)
         self.maximumToken = True
@@ -355,6 +358,16 @@ class MainWindow(QMainWindow):
                 'showStartLive': True,
             }
         self.dumpConfig = DumpConfig(self.config)
+
+        self.webRemoteDialog = WebRemoteDialog()
+        self.webRemoteServer = WebRemoteServer(self.config)
+        self.webRemoteServer.setRoomId.connect(self.addCoverToPlayer)
+        self.webRemoteServer.setVolume.connect(self.setRoomVolume)
+        self.webRemoteServer.setMute.connect(self.setRoomMute)
+        self.webRemoteServer.setExchange.connect(self.exchangeMedia)
+
+        # Thread(target=self.webRemoteServer.run, daemon=True).start()
+        self.webRemoteServer.start()
 
         # ---- 主窗体控件 ----
         mainWidget = QWidget()
@@ -626,14 +639,7 @@ class MainWindow(QMainWindow):
         self.loadDockLayout()
         logging.info('UI构造完毕')
 
-        self.webRemoteDialog = WebRemoteDialog()
-        self.webRemoteServer = WebRemoteServer(self.config)
-        self.webRemoteServer.setRoomId.connect(self.addCoverToPlayer)
-        self.webRemoteServer.setVolume.connect(self.setRoomVolume)
-        self.webRemoteServer.setMute.connect(self.setRoomMute)
-        self.webRemoteServer.setExchange.connect(self.exchangeMedia)
-        Thread(target=self.webRemoteServer.run, daemon=True).start()
-        # self.webRemoteServer.run()
+        
 
 
     def showWebRemoteDialog(self):
