@@ -56,7 +56,7 @@ class WebRemoteServer(QThread):
                 'volume': self.config['volume'][i],
             } for i,roomid in enumerate(self.config['player'])]
             cardInfo = list(filter(lambda i:i[1] not in self.deletedRoomIds, self.liverInfo))
-            cardInfo.sort(key=functools.cmp_to_key(lambda x,y:abs(x[1]-1) - abs(y[1]-1)))
+            cardInfo.sort(key=functools.cmp_to_key(lambda x,y:abs(x[4]-1) - abs(y[4]-1)))
             return render_template('index.html', config=self.config, liverInfo=self.liverInfo, playerInfo=playerInfo, cardInfo=cardInfo)
         # @app.route('/cards')
         # def cards():
