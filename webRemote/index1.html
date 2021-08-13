@@ -245,8 +245,8 @@
         if (!liverInfo.hasOwnProperty(data[i][1])) {
           liverInfo[data[i][1]] = {
             face: data[i][3],
-            liveStatus: data[i][2],
-            name: data[i][4]
+            liveStatus: data[i][4],
+            name: data[i][2]
           }
         }
         if ($(`.card[data-roomid=${data[i][1]}]`).length == 0) {
